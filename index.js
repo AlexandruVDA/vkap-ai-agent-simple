@@ -1,7 +1,11 @@
 import TelegramBot from "node-telegram-bot-api";
 import OpenAI from "openai";
 
-const VKAP_MINT = "8YPfddKpUzPhdyKw6UpdMFnD7yqqft2D8fEcFBeKpump";
+const VKAP_MINT = process.env.AGENT_TOKEN_MINT_ADDRESS;
+const PAYMENT_ADDRESS = process.env.PAYMENT_ADDRESS;
+const PRICE_AMOUNT = Number(process.env.PRICE_AMOUNT || 10000000);
+const SOL_PRICE = PRICE_AMOUNT / 1_000_000_000;
+
 const VKAP_BUY_LINK = `https://pump.fun/coin/${VKAP_MINT}`;
 
 const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
@@ -21,11 +25,13 @@ Token:
 - Network: Solana
 - Contract: ${VKAP_MINT}
 - Buy link: ${VKAP_BUY_LINK}
+- Agent payment address: ${PAYMENT_ADDRESS}
 
 Rules:
 - Keep replies short
 - Never give financial advice
 - If asked where to buy, provide official buy link
+- If asked about buyback, explain payments to the agent create revenue and the configured buyback rate burns bought-back VKAP
 - If user writes Romanian, answer Romanian
 - If user writes German, answer German
 - Otherwise answer English
@@ -39,6 +45,8 @@ function menu() {
 /skills
 /contract
 /buy
+/pay
+/buyback
 /community
 /partnership
 `;
@@ -72,6 +80,8 @@ bot.onText(/\/skills/, async (msg) => {
 • Crypto Q&A
 • Contract verification
 • Buy guidance
+• Agent payment info
+• Buyback explanation
 • Partnership requests`
   );
 });
@@ -94,11 +104,39 @@ ${VKAP_BUY_LINK}`
   );
 });
 
-bot.onText(/\/community/, async (msg) => {
+bot.onText(/\/pay/, async (msg) => {
   await send(
     msg.chat.id,
-    `🔥 Welcome to VKAP community.`
+    `💳 VKAP Agent Payment
+
+Amount:
+${SOL_PRICE} SOL
+
+Send to:
+${PAYMENT_ADDRESS}
+
+After payments are claimed, the configured buyback rate is used for VKAP buyback/burn.`
   );
+});
+
+bot.onText(/\/buyback/, async (msg) => {
+  await send(
+    msg.chat.id,
+    `🔥 VKAP Buyback
+
+Current setup:
+• Buyback rate: 20%
+• Payments go to the VKAP agent payment address
+• When revenue is claimed, 20% is used for VKAP buyback
+• Bought-back VKAP is burned permanently
+
+Payment address:
+${PAYMENT_ADDRESS}`
+  );
+});
+
+bot.onText(/\/community/, async (msg) => {
+  await send(msg.chat.id, `🔥 Welcome to VKAP community.`);
 });
 
 bot.onText(/\/partnership/, async (msg) => {
@@ -117,12 +155,11 @@ Please send:
 
 bot.on("message", async (msg) => {
   if (!msg.text) return;
-
   if (msg.text.startsWith("/")) return;
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: msg.text },
@@ -130,9 +167,7 @@ bot.on("message", async (msg) => {
       max_tokens: 200,
     });
 
-    const reply =
-      response.choices[0]?.message?.content || "VKAP AI online.";
-
+    const reply = response.choices[0]?.message?.content || "VKAP AI online.";
     await send(msg.chat.id, reply);
   } catch (err) {
     console.error(err);
