@@ -12,78 +12,61 @@ const openai = new OpenAI({
 });
 
 const SYSTEM_PROMPT = `
-You are VKAP AI, the official Telegram assistant for VILLACH KAPITAL / VKAP.
+You are VKAP AI, official assistant for VILLACH KAPITAL.
 
-VKAP is a Solana token.
-Official contract address: ${VKAP_MINT}
+Official contract:
+${VKAP_MINT}
 
 Rules:
-- Keep answers short, confident, and community-friendly.
-- Never promise profit, pumps, listings, or guaranteed returns.
-- Never give financial advice.
-- Always remind users to verify the contract address before buying.
-- If asked where to buy, say: Pump.fun / Solana using the official contract address.
-- If asked about ads, AMA, influencers, marketing, or partnerships, ask for media kit, price, engagement stats, audience location, and previous campaign results.
-- If user writes Romanian, answer Romanian.
-- If user writes German, answer German.
-- Otherwise answer English.
+- Keep replies short.
+- Never promise profits.
+- Never invent fake token utilities.
+- If asked where to buy: Pump.fun on Solana.
+- Always use official contract address.
 `;
 
-function mainMenu() {
+function menu() {
   return `
-🤖 VKAP AI Commands
+🤖 VKAP COMMANDS
 
-/start - Start bot
-/contract - Official contract
-/buy - Where to buy VKAP
-/community - Community info
-/partnership - Ads / AMA / promo requests
-/skills - Show commands
+/start
+/skills
+/contract
+/buy
+/community
+/partnership
 `;
 }
 
 bot.onText(/\/start/, async (msg) => {
   await bot.sendMessage(
     msg.chat.id,
-    `👋 Welcome to VKAP AI.
-
-VILLACH KAPITAL / VKAP
-Network: Solana
-Contract:
-${VKAP_MINT}
-
-${mainMenu()}`
+    `👋 Welcome to VKAP AI\n${menu()}`
   );
+});
+
+bot.onText(/\/skills/, async (msg) => {
+  await bot.sendMessage(msg.chat.id, menu());
 });
 
 bot.onText(/\/contract/, async (msg) => {
   await bot.sendMessage(
     msg.chat.id,
-    `✅ Official VKAP contract:
-
-${VKAP_MINT}
-
-Always verify the contract before buying.`
+    `Official VKAP contract:\n${VKAP_MINT}`
   );
 });
 
 bot.onText(/\/buy/, async (msg) => {
   await bot.sendMessage(
     msg.chat.id,
-    `You can buy VKAP on Pump.fun / Solana using the official contract:
-
-${VKAP_MINT}
-
-Always verify the contract before buying.`
+    `Buy VKAP on Pump.fun (Solana)\nContract:\n${VKAP_MINT}`
   );
 });
 
 bot.onText(/\/community/, async (msg) => {
   await bot.sendMessage(
     msg.chat.id,
-    `Welcome to the VKAP community 🔥
-
-VKAP is built around community, crypto culture, and the Villach Kapital brand.`
+    `Welcome to VKAP community 🔥`
   );
 });
 
@@ -93,18 +76,12 @@ bot.onText(/\/partnership/, async (msg) => {
     `Thanks for reaching out.
 
 Please send:
-• Media kit
-• Pricing
-• Engagement stats
-• Audience geo
-• Previous campaign results
-
-Our team will review it.`
+- Media kit
+- Pricing
+- Engagement stats
+- Audience geo
+- Previous campaign results`
   );
-});
-
-bot.onText(/\/skills/, async (msg) => {
-  await bot.sendMessage(msg.chat.id, mainMenu());
 });
 
 bot.on("message", async (msg) => {
@@ -112,26 +89,35 @@ bot.on("message", async (msg) => {
 
   const text = msg.text.trim();
 
-  if (text.startsWith("/")) return;
+  if (
+    text === "/start" ||
+    text === "/skills" ||
+    text === "/contract" ||
+    text === "/buy" ||
+    text === "/community" ||
+    text === "/partnership"
+  ) {
+    return;
+  }
 
   try {
     const response = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+      model: "gpt-4o-mini",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: text }
       ],
-      max_tokens: 250
+      max_tokens: 200
     });
 
-    const reply =
-      response.choices[0]?.message?.content || "VKAP AI is online.";
-
-    await bot.sendMessage(msg.chat.id, reply);
-  } catch (error) {
-    console.error(error);
-    await bot.sendMessage(msg.chat.id, "⚠️ Temporary error. Try again.");
+    await bot.sendMessage(
+      msg.chat.id,
+      response.choices[0].message.content
+    );
+  } catch (err) {
+    console.error(err);
+    await bot.sendMessage(msg.chat.id, "Temporary error.");
   }
 });
 
-console.log("VKAP AI Telegram bot is running.");
+console.log("VKAP BOT ONLINE");
