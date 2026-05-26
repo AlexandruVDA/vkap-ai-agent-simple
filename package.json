@@ -1,14 +1,12 @@
 {
   "name": "vkap-ai-agent-simple",
   "version": "1.0.0",
-  "description": "Telegram AI bot",
   "main": "index.js",
-  "type": "module",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
     "node-telegram-bot-api": "^0.66.0",
-    "openai": "^4.56.0"
+    "openai": "^4.52.7"
   }
 }
