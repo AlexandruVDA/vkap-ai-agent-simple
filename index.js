@@ -2,13 +2,16 @@ import TelegramBot from "node-telegram-bot-api";
 import OpenAI from "openai";
 
 const VKAP_MINT = "8YPfddKpUzPhdyKw6UpdMFnD7yqqft2D8fEcFBeKpump";
-const VKAP_BUY_LINK = "https://pump.fun/coin/8YPfddKpUzPhdyKw6UpdMFnD7yqqft2D8fEcFBeKpump";
-const SKILLS_LINK = "https://raw.githubusercontent.com/pump-fun/pump-fun-skills/refs/heads/main/tokenized-agents/SKILL.md";
+const VKAP_BUY_LINK = `https://pump.fun/coin/${VKAP_MINT}`;
+const SKILLS_LINK =
+  "https://raw.githubusercontent.com/pump-fun/pump-fun-skills/refs/heads/main/tokenized-agents/SKILL.md";
 
-const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
+const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
+  polling: true,
+});
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 const SYSTEM_PROMPT = `
@@ -21,17 +24,14 @@ Network: Solana
 Mint address: ${VKAP_MINT}
 Buy link: ${VKAP_BUY_LINK}
 
-Tokenized agent skill reference:
+Tokenized Agent Skill:
 ${SKILLS_LINK}
 
-Original tokenized agent task:
-Build a Next.js random number generator app that gates access behind a Solana payment. Users connect their wallet and pay a small fee such as 0.1 SOL. Once payment is verified on the backend, they can generate a random number between 0 and 1000. Use the Pump.fun tokenized agents skill to build the payment transaction, handle wallet signing, and verify the invoice server-side before granting access.
-
 Rules:
-- Keep replies short and clear.
+- Keep replies short, clear, and community-friendly.
 - Never promise profit, pumps, listings, or guaranteed returns.
 - Never give financial advice.
-- Always remind users to verify the official contract.
+- Always remind users to verify the official contract before buying.
 - If asked where to buy, give the official Pump.fun link.
 - If asked about ads, AMA, influencers, marketing, or partnerships, ask for media kit, pricing, engagement stats, audience geo, and previous campaign results.
 - If user writes Romanian, answer Romanian.
@@ -40,20 +40,24 @@ Rules:
 `;
 
 function menu() {
-  return `
-🤖 VKAP AI Commands
+  return `🤖 VKAP AI Commands
 
 /start - Start bot
 /skills - Show agent skills
 /contract - Official contract
 /buy - Buy VKAP
 /community - Community info
-/partnership - Ads / AMA / promo requests
-`;
+/partnership - Ads / AMA / promo requests`;
 }
 
-bot.onText(/\/start/, async (msg) => {
-  await bot.sendMessage(
+async function send(chatId, text) {
+  await bot.sendMessage(chatId, text, {
+    disable_web_page_preview: true,
+  });
+}
+
+bot.onText(/^\/start$/, async (msg) => {
+  await send(
     msg.chat.id,
     `👋 Welcome to VKAP AI.
 
@@ -66,8 +70,8 @@ ${menu()}`
   );
 });
 
-bot.onText(/\/skills/, async (msg) => {
-  await bot.sendMessage(
+bot.onText(/^\/skills$/, async (msg) => {
+  await send(
     msg.chat.id,
     `${menu()}
 
@@ -76,8 +80,8 @@ ${SKILLS_LINK}`
   );
 });
 
-bot.onText(/\/contract/, async (msg) => {
-  await bot.sendMessage(
+bot.onText(/^\/contract$/, async (msg) => {
+  await send(
     msg.chat.id,
     `✅ Official VKAP contract:
 
@@ -87,19 +91,21 @@ Always verify the contract before buying.`
   );
 });
 
-bot.onText(/\/buy/, async (msg) => {
-  await bot.sendMessage(
+bot.onText(/^\/buy$/, async (msg) => {
+  await send(
     msg.chat.id,
     `Buy VKAP:
 ${VKAP_BUY_LINK}
 
-Always verify the official contract:
-${VKAP_MINT}`
+Official contract:
+${VKAP_MINT}
+
+Always verify the contract before buying.`
   );
 });
 
-bot.onText(/\/community/, async (msg) => {
-  await bot.sendMessage(
+bot.onText(/^\/community$/, async (msg) => {
+  await send(
     msg.chat.id,
     `Welcome to the VKAP community 🔥
 
@@ -107,8 +113,8 @@ VKAP is built around community, crypto culture, and the Villach Kapital brand.`
   );
 });
 
-bot.onText(/\/partnership/, async (msg) => {
-  await bot.sendMessage(
+bot.onText(/^\/partnership$/, async (msg) => {
+  await send(
     msg.chat.id,
     `Thanks for reaching out.
 
@@ -134,17 +140,23 @@ bot.on("message", async (msg) => {
     const response = await openai.chat.completions.create({
       model: process.env.OPENAI_MODEL || "gpt-4o-mini",
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: text }
+        {
+          role: "system",
+          content: SYSTEM_PROMPT,
+        },
+        {
+          role: "user",
+          content: text,
+        },
       ],
-      max_tokens: 250
+      max_tokens: 220,
     });
 
     const reply = response.choices[0]?.message?.content || "VKAP AI is online.";
-    await bot.sendMessage(msg.chat.id, reply);
+    await send(msg.chat.id, reply);
   } catch (error) {
-    console.error(error);
-    await bot.sendMessage(msg.chat.id, "⚠️ Temporary error. Try again.");
+    console.error("OpenAI error:", error);
+    await send(msg.chat.id, "⚠️ Temporary error. Try again.");
   }
 });
 
